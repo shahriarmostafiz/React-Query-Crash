@@ -1,9 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import React from 'react';
+import React, { useContext } from 'react';
+import { IdContext } from '../../IdContextProvder';
 
 const ProductList = () => {
-
+    const { id, setId } = useContext(IdContext)
+    const queryClient = useQueryClient()
     const retrieveList = async ({ queryKey }) => {
         // console.log(obj);
         const res = await axios.get(`http://localhost:3000/${queryKey[0]}`)
@@ -17,6 +19,13 @@ const ProductList = () => {
         staleTime: 10000
     })
 
+    const mutation = useMutation({
+        mutationFn: id => axios.delete(`http://localhost:3000/products/${id}`),
+        onSuccess: () => {
+            queryClient.invalidateQueries(["products"])
+        }
+    })
+
     if (isPending) {
         return <div>
             Loading data
@@ -27,7 +36,12 @@ const ProductList = () => {
             an error has occurred.... {error.message}
         </div>
     }
-    console.log(products);
+
+    const handleDelete = id => {
+        mutation.mutate(id)
+    }
+    // mutation.isSuccess && alert("Product was deleted ")
+    // console.log(products);
     return (
         <div className='flex flex-col justify-center items-center w-3/5'>
             <h2 className='text-3xl my-2'>
@@ -38,11 +52,15 @@ const ProductList = () => {
                     products?.map(product => (
                         <li key={product.id} className=' flex flex-col m-2 items-center  border rounded-sm '>
                             <img src={product.thumbnail} alt="" className=' object-cover h-64 w-96 rounded' />
-                            <p className='text-3xl my-3'>
-                                {
-                                    product.title
-                                }
-                            </p>
+                            <div className="flex justify-between w-full px-4 items-center   ">
+                                <p className='text-3xl my-3 cursor-pointer hover:text-green-600' onClick={() => setId(product.id)}>
+                                    {
+                                        product.title
+                                    }
+                                </p>
+                                <button className='text-white bg-red-500 px-2 text-xs py-1 hover:bg-red-600  rounded' onClick={() => handleDelete(product.id)}>Delete  </button>
+                            </div>
+
                         </li>
                     ))
                 }
